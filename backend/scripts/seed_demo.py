@@ -17,9 +17,16 @@ def seed():
    study=db.scalar(select(FlowStudy).where(FlowStudy.name==name))
    if study:continue
    study=FlowStudy(name=name,filename=f'fw-pressure-{index+1}-202611.csv',description=['独立滤片，各流速档8片；局部均值逆序用于检验合并','预设物理非降；平台不提供唯一反解','零方差合法；逆集合可以覆盖整个观测域'][index],direction='nondecreasing');db.add(study);db.flush()
-   for i,(flow,mean) in enumerate(zip(x,means[index])):
-    level=DoseLevel(study_id=study.id,label=f'F{i+1:02d}',flow=float(flow));db.add(level);db.flush();noise=rng.normal(0,.18,8) if index==0 else np.array([-.2,-.1,0,.1,.2,-.1,0,.1]) if index==1 else np.zeros(8)
-    for j,value in enumerate(mean+noise):db.add(PressureReading(study_id=study.id,level_id=level.id,specimen_ref=f'FW{index+1}-F{i+1:02d}-P{j+1:02d}',pressure=float(value),measurement_note='独立滤片，非同片重复读数'))
+   for i, (flow, mean) in enumerate(zip(x, means[index])):
+    level = DoseLevel(study_id=study.id, label=f'F{i+1:02d}', flow=float(flow)); db.add(level); db.flush()
+    noise = rng.normal(0, .18, 8) if index == 0 else np.array([-.2, -.1, 0, .1, .2, -.1, 0, .1]) if index == 1 else np.zeros(8)
+    for j, value in enumerate(mean + noise):
+     # 同批滤片跨流速档分布：三项研究共用 B1/B2/B3 三个制片批次；
+     # 第三项恒定对照刻意不记录批次，演示缺批次不猜填、LOBO 明确不可用。
+     batch = None if index == 2 else f'B{j % 3 + 1}'
+     db.add(PressureReading(study_id=study.id, level_id=level.id,
+                            specimen_ref=f'FW{index+1}-F{i+1:02d}-P{j+1:02d}', pressure=float(value),
+                            measurement_note='独立滤片，非同片重复读数', production_batch=batch))
    db.commit()
   run=db.scalar(select(MonotoneRun).where(MonotoneRun.name=='A研究加权非降校对'))
   if not run:

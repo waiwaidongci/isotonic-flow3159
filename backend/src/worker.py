@@ -17,6 +17,6 @@ def fit_run(id):
   run.status='running';db.commit()
   try:
    study,levels,readings=source_data(db,run.study_id);result=analyze(study,levels,readings,run.config)
-   Path(ARTIFACT_DIR).mkdir(parents=True,exist_ok=True);Path(ARTIFACT_DIR,f'flow-{id}.json').write_text(json.dumps(result,ensure_ascii=False,allow_nan=False));run.result=result;run.status='completed';run.error=None;db.commit();record(db,'worker','run.completed',{'run_id':id,'lodo_mse':result['lodo']['mse']})
+   Path(ARTIFACT_DIR).mkdir(parents=True,exist_ok=True);Path(ARTIFACT_DIR,f'flow-{id}.json').write_text(json.dumps(result,ensure_ascii=False,allow_nan=False));run.result=result;run.status='completed';run.error=None;db.commit();record(db,'worker','run.completed',{'run_id':id,'lodo_mse':result['lodo']['mse'],'lobo_available':result['lobo']['available'],'lobo_mse':result['lobo']['mse'],'lobo_unevaluable_folds':result['lobo']['unevaluable_fold_count']})
   except Exception as error:
    db.rollback();run=db.get(MonotoneRun,id);run.status='failed';run.error=str(error)[:1000];db.commit();record(db,'worker','run.failed',{'run_id':id,'error':run.error})
